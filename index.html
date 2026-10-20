@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Demo Tech End of Day Checklist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eceeef; --sheet: #ffffff; --ink: #1d2328; --muted: #5b6670; --line: #cfd5da;
+    --hivis: #f2c200; --yes: #1f7a4d; --no: #b3261e; --focus: #1a5fb4;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #15191c; --sheet: #1f2529; --ink: #e8ecef; --muted: #9aa6b0; --line: #36404a;
+      --yes: #3fb27a; --no: #ef6b61; --focus: #7fb0ff;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 17px/1.5 "Barlow", "Segoe UI", Arial, sans-serif; }
+  .tape { height: 14px; background: repeating-linear-gradient(-45deg, var(--hivis) 0 18px, #1d2328 18px 36px); }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+
+  .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+  .lang-btn {
+    flex-shrink: 0; padding: 10px 16px; font: 600 1rem "Barlow", sans-serif;
+    color: var(--ink); background: var(--sheet); border: 2px solid var(--ink); border-radius: 6px; cursor: pointer;
+  }
+  .lang-btn:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+
+  h1, h2 { font-family: "Barlow Condensed", "Arial Narrow", sans-serif; font-weight: 700; line-height: 1.1; margin: 0; }
+  h1 { font-size: 2.3rem; }
+  h2 { font-size: 1.5rem; margin-bottom: 12px; }
+  .sheet { background: var(--sheet); border: 1px solid var(--line); border-radius: 6px; padding: 20px; margin-top: 20px; }
+  .rules { margin: 0; padding-left: 1.4em; }
+  .rules li { margin-bottom: 12px; }
+  .rules li:last-child { margin-bottom: 0; }
+
+  .task { display: grid; grid-template-columns: 2.2em 1fr auto; gap: 12px; align-items: center; padding: 14px 0; border-top: 1px solid var(--line); }
+  .task:first-child { border-top: 0; }
+  .num { font-family: "Barlow Condensed", sans-serif; font-size: 1.4rem; font-weight: 700; color: var(--muted); }
+  .task-name { font-weight: 600; }
+  .choice { display: flex; gap: 8px; }
+  .choice input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .choice label { min-width: 64px; padding: 10px 14px; text-align: center; border: 2px solid var(--line); border-radius: 6px; font-weight: 600; cursor: pointer; user-select: none; }
+  .choice input:checked + label.y { background: var(--yes); border-color: var(--yes); color: #fff; }
+  .choice input:checked + label.n { background: var(--no); border-color: var(--no); color: #fff; }
+  .choice input:focus-visible + label { outline: 3px solid var(--focus); outline-offset: 2px; }
+  .task.missing .choice label { border-color: var(--no); }
+
+  .fields { display: grid; grid-template-columns: 1fr 200px; gap: 16px; margin-top: 20px; }
+  .field label { display: block; font-weight: 600; margin-bottom: 6px; }
+  .field input { width: 100%; padding: 12px; font: inherit; color: var(--ink); background: var(--sheet); border: 2px solid var(--line); border-radius: 6px; }
+  .field input:focus { outline: 3px solid var(--focus); outline-offset: 1px; }
+  .hint { color: var(--muted); font-size: 0.9rem; margin: 6px 0 0; }
+
+  button[type=submit] { margin-top: 20px; width: 100%; padding: 16px; font: 700 1.3rem "Barlow Condensed", sans-serif; background: var(--hivis); color: #1d2328; border: 0; border-radius: 6px; cursor: pointer; }
+  button[type=submit]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+  .status { font-weight: 600; min-height: 1.5em; margin: 14px 0 0; }
+  .status.err { color: var(--no); }
+  .saved { background: var(--yes); color: #fff; padding: 14px 18px; border-radius: 6px; font-weight: 600; margin-top: 20px; }
+  .saved[hidden] { display: none; }
+
+  @media (max-width: 560px) {
+    .task { grid-template-columns: 1.6em 1fr; }
+    .choice { grid-column: 2; }
+    .fields { grid-template-columns: 1fr; }
+    h1 { font-size: 1.9rem; }
+  }
+</style>
+</head>
+<body>
+<div class="tape" aria-hidden="true"></div>
+<main>
+  <div class="top">
+    <h1 data-t="title"></h1>
+    <button type="button" class="lang-btn" id="langBtn"></button>
+  </div>
+
+  <p class="saved" id="saved" hidden data-t="saved"></p>
+
+  <!-- FIXED TEXT -->
+  <section class="sheet">
+    <h2 data-t="rulesHeading"></h2>
+    <ol class="rules" id="rules"></ol>
+  </section>
+
+  <!-- FILLABLE PART — posts straight to TeamDesk -->
+  <form id="checklist" class="sheet" name="frm" method="post" novalidate
+        action="https://sarecycling.truebookspartners.com/secure/gateway.aspx?action=WebToRecord&amp;app=80043&amp;table=1788278">
+    <input type="hidden" name="retURL" id="retURL" value="https://sarecycling.truebookspartners.com">
+
+    <h2 data-t="formHeading"></h2>
+    <div id="tasks"></div>
+
+    <div class="fields">
+      <div class="field">
+        <label for="signature" data-t="sigLabel"></label>
+        <input id="signature" name="f_78644310" maxlength="40" autocomplete="name">
+        <p class="hint" data-t="sigHint"></p>
+      </div>
+      <div class="field">
+        <label for="datePicker" data-t="dateLabel"></label>
+        <input id="datePicker" type="date">
+        <input type="hidden" name="f_78644311" id="dateValue">
+      </div>
+    </div>
+
+    <button type="submit" data-t="submit"></button>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+  </form>
+</main>
+
+<script>
+  // ===== CONFIG =====
+  // "field" is the f_ name from TeamDesk's generated form.
+  const TASKS = [
+    { field: "f_78644301",
+      name: { en: "Tools storage", es: "Herramientas" },
+      rule: { en: "Tools checked for damage and stored properly in the Demo Tech's toolbox and/or Conex Box.",
+              es: "Checar herramienta para daños y al final guardarla en la caja de herramienta." } },
+    { field: "f_78644302",
+      name: { en: "PPE care", es: "Equipo de protección" },
+      rule: { en: "All masks, respirators, gloves, and other personal PPE need to be put up, not left out.",
+              es: "Máscaras al final del día guárdala en su bolsa, guantes guardarlos apropiadamente." } },
+    { field: "f_78644303",
+      name: { en: "String lights", es: "Extensiones de focos" },
+      rule: { en: "All string lights should be checked and fixed if not hung correctly. Replace any light bulbs if necessary.",
+              es: "Checar todas las extensiones de focos al final del día por daños como cortadas o rasgadas, y que estén colgadas adecuadamente. Si faltan focos, reemplazarlos." } },
+    { field: "f_78644304",
+      name: { en: "Extension cords", es: "Extensiones" },
+      rule: { en: "Extension cords need to be checked for any damage.",
+              es: "Checar todas las extensiones para la herramienta por daños, rasgadas o cortadas; sacarlas fuera de servicio y reemplazar." } },
+    { field: "f_78644305",
+      name: { en: "Debris and waste", es: "Basura" },
+      rule: { en: "All insulation, trash, and debris need to be picked up and bagged.",
+              es: "Toda basura debe ser levantada y embolsada al final del día." } },
+    { field: "f_78644306",
+      name: { en: "Clear walkways", es: "Pasillos libres" },
+      rule: { en: "Walkways need to be clear of any objects, cables, pipes, and hoses.",
+              es: "Todos los pasillos deben de estar libres de cualquier objeto que pueda ser una obstrucción." } },
+    { field: "f_78644307",
+      name: { en: "Ladder inspection", es: "Escaleras" },
+      rule: { en: "All ‘A’ ladders should be properly stored and checked by the end of the day.",
+              es: "Todas las escaleras deben de estar guardadas apropiadamente y checadas por daños." } },
+    { field: "f_78644309",
+      name: { en: "Water jugs", es: "Termos" },
+      rule: { en: "All water jugs must be brought down for the next day.",
+              es: "Bajar los termos al final del día para el día siguiente." } }
+  ];
+
+  const TEXT = {
+    en: {
+      langBtn: "Español", title: "Demo Tech end of day checklist",
+      saved: "Checklist saved.", rulesHeading: "Before you leave", formHeading: "Checklist",
+      yes: "Yes", no: "No",
+      sigLabel: "Supervisor signature", sigPlaceholder: "Type your full name",
+      sigHint: "Typing your name counts as your signature.",
+      dateLabel: "Date", submit: "Submit checklist", saving: "Saving…",
+      errItems: "Answer Yes or No for every item.", errSig: "Add your signature and the date."
+    },
+    es: {
+      langBtn: "English", title: "Lista de fin del día – Demo Tech",
+      saved: "Lista guardada.", rulesHeading: "Antes de salir", formHeading: "Lista",
+      yes: "Sí", no: "No",
+      sigLabel: "Firma del supervisor", sigPlaceholder: "Escriba su nombre completo",
+      sigHint: "Escribir su nombre cuenta como su firma.",
+      dateLabel: "Fecha", submit: "Enviar lista", saving: "Guardando…",
+      errItems: "Conteste Sí o No en cada punto.", errSig: "Agregue su firma y la fecha."
+    }
+  };
+
+  // How the date is sent to TeamDesk. Change if your app uses another date format.
+  const formatDate = (iso) => { const [y, m, d] = iso.split("-"); return `${m}/${d}/${y}`; };
+  // ==================
+
+  const params = new URLSearchParams(location.search);
+  let lang = params.get("lang") === "es" ? "es" : "en";
+  try { if (!params.has("lang") && localStorage.getItem("lang") === "es") lang = "es"; } catch {}
+
+  // Build the fixed rules and the Yes/No rows once
+  const rulesEl = document.getElementById("rules");
+  const tasksEl = document.getElementById("tasks");
+  TASKS.forEach((t, i) => {
+    rulesEl.insertAdjacentHTML("beforeend", `<li data-rule="${i}"></li>`);
+    tasksEl.insertAdjacentHTML("beforeend", `
+      <div class="task" id="t${i}-row">
+        <span class="num">${i + 1}</span>
+        <div class="task-name" id="t${i}-label" data-name="${i}"></div>
+        <div class="choice" role="radiogroup" aria-labelledby="t${i}-label">
+          <input type="radio" id="t${i}-y" name="${t.field}" value="Yes"><label class="y" for="t${i}-y" data-t="yes"></label>
+          <input type="radio" id="t${i}-n" name="${t.field}" value="No"><label class="n" for="t${i}-n" data-t="no"></label>
+        </div>
+      </div>`);
+  });
+
+  const statusEl = document.getElementById("status");
+  let statusKey = "";
+
+  function render() {
+    const T = TEXT[lang];
+    document.documentElement.lang = lang;
+    document.title = T.title;
+    document.querySelectorAll("[data-t]").forEach(el => el.textContent = T[el.dataset.t]);
+    document.querySelectorAll("[data-rule]").forEach(el => el.textContent = TASKS[el.dataset.rule].rule[lang]);
+    document.querySelectorAll("[data-name]").forEach(el => el.textContent = TASKS[el.dataset.name].name[lang]);
+    document.getElementById("langBtn").textContent = T.langBtn;
+    document.getElementById("signature").placeholder = T.sigPlaceholder;
+    statusEl.textContent = statusKey ? T[statusKey] : "";
+    // Keep the chosen language after TeamDesk redirects back
+    document.getElementById("retURL").value = location.href.split("?")[0] + "?saved=1&lang=" + lang;
+  }
+
+  document.getElementById("langBtn").addEventListener("click", () => {
+    lang = lang === "en" ? "es" : "en";
+    try { localStorage.setItem("lang", lang); } catch {}
+    render();
+  });
+
+  // Default date = today
+  const now = new Date();
+  document.getElementById("datePicker").value =
+    new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+
+  if (params.has("saved")) document.getElementById("saved").hidden = false;
+  render();
+
+  const form = document.getElementById("checklist");
+  function showError(key) { statusKey = key; statusEl.className = "status err"; render(); }
+
+  form.addEventListener("submit", (e) => {
+    let firstMissing = null;
+    TASKS.forEach((t, i) => {
+      const picked = form.querySelector(`input[name="${t.field}"]:checked`);
+      const row = document.getElementById(`t${i}-row`);
+      row.classList.toggle("missing", !picked);
+      if (!picked && !firstMissing) firstMissing = row;
+    });
+    const sig = document.getElementById("signature");
+    const picker = document.getElementById("datePicker");
+
+    if (firstMissing) {
+      e.preventDefault(); showError("errItems");
+      firstMissing.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
+    if (!sig.value.trim() || !picker.value) {
+      e.preventDefault(); showError("errSig");
+      (sig.value.trim() ? picker : sig).focus();
+      return;
+    }
+    document.getElementById("dateValue").value = formatDate(picker.value);
+    statusKey = "saving"; statusEl.className = "status"; render();
+  });
+</script>
+</body>
+</html>
