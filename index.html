@@ -66,8 +66,14 @@
   button[type=submit]:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   .status { font-weight: 600; min-height: 1.5em; margin: 14px 0 0; }
   .status.err { color: var(--no); }
-  .saved { background: var(--yes); color: #fff; padding: 14px 18px; border-radius: 6px; font-weight: 600; margin-top: 20px; }
-  .saved[hidden] { display: none; }
+  .thanks { text-align: center; padding: 40px 24px; }
+  .thanks[hidden], form[hidden] { display: none; }
+  .check { width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 50%; background: var(--yes); color: #fff;
+           display: grid; place-items: center; font-size: 2.4rem; font-weight: 700; }
+  .thanks p { color: var(--muted); margin: 8px 0 24px; }
+  .again { display: inline-block; padding: 14px 24px; font: 700 1.15rem "Barlow Condensed", sans-serif;
+           background: var(--hivis); color: #1d2328; border-radius: 6px; text-decoration: none; }
+  .again:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 
   @media (max-width: 560px) {
     .task { grid-template-columns: 1.6em 1fr; }
@@ -86,7 +92,13 @@
     <button type="button" class="lang-btn" id="langBtn"></button>
   </div>
 
-  <p class="saved" id="saved" hidden data-t="saved"></p>
+  <!-- Thank-you screen, shown after TeamDesk sends people back -->
+  <section class="sheet thanks" id="thanks" hidden>
+    <div class="check" aria-hidden="true">✓</div>
+    <h2 data-t="thanksTitle"></h2>
+    <p data-t="thanksText"></p>
+    <a class="again" id="again" href="#" data-t="thanksAgain"></a>
+  </section>
 
   <!-- FILLABLE PART — posts straight to TeamDesk -->
   <form id="checklist" class="sheet" name="frm" method="post" novalidate
@@ -159,7 +171,8 @@
   const TEXT = {
     en: {
       langBtn: "Español", title: "Demo Tech end of day checklist",
-      saved: "Checklist saved.", formHeading: "Checklist",
+      thanksTitle: "Thank you!", thanksText: "Your checklist was submitted.",
+      thanksAgain: "Submit another checklist", formHeading: "Checklist",
       intro: "Answer Yes if it was done. Answer No if it wasn't done or something still needs to be fixed.",
       yes: "Yes", no: "No",
       sigLabel: "Supervisor signature", sigPlaceholder: "Type your full name",
@@ -169,7 +182,8 @@
     },
     es: {
       langBtn: "English", title: "Lista de fin del día – Demo Tech",
-      saved: "Lista guardada.", formHeading: "Lista",
+      thanksTitle: "¡Gracias!", thanksText: "Su lista fue enviada.",
+      thanksAgain: "Enviar otra lista", formHeading: "Lista",
       intro: "Conteste Sí si se hizo. Conteste No si no se hizo o si algo todavía necesita arreglarse.",
       yes: "Sí", no: "No",
       sigLabel: "Firma del supervisor", sigPlaceholder: "Escriba su nombre completo",
@@ -243,7 +257,15 @@
   document.getElementById("datePicker").value =
     new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
-  if (params.has("saved")) document.getElementById("saved").hidden = false;
+  if (params.has("saved")) {
+    document.getElementById("thanks").hidden = false;
+    document.getElementById("checklist").hidden = true;
+  }
+  // "Submit another" opens a blank form in the current language
+  document.getElementById("again").addEventListener("click", (e) => {
+    e.preventDefault();
+    location.href = location.href.split("?")[0] + "?lang=" + lang;
+  });
   render();
 
   const form = document.getElementById("checklist");
